@@ -1,16 +1,17 @@
 (ns dat-harmony.core-test
   (:require [clojure.test :refer :all]
             [dat-harmony.core :refer :all]
+            [dat-harmony.datomic-schema :refer :all]
             [datascript.core :as d]))
 
 (defn harmonize
   [conn1 conn2 selector eid]
   (d/transact! conn2 (pull-datoms d/q @conn1 selector eid))
-  [(d/pull @conn1 selector eid)
-   (d/pull @conn2 selector eid)])
+  [(d/pull-many @conn1 selector eid)
+   (d/pull-many @conn2 selector eid)])
 
-(deftest a-test
-  (testing "End to end"
+(deftest pull-datoms-test
+  (testing "Pull Datoms"
     (let [schema {:ref {:db/cardinality :db.cardinality/many
                         :db/valueType :db.type/ref}}
           conn1 (d/create-conn schema)
@@ -22,5 +23,39 @@
                            :ref [2 3]}
                           {:db/id 2 :val "v2"}
                           {:db/id 3 :val "v3"}])
-      (let [[exp act] (harmonize conn1 conn2 selector 2)]
+      (let [[exp act] (harmonize conn1 conn2 selector [2 3])]
         (is (= exp act))))))
+
+(deftest datomic-schema-test
+  (testing "Datomic Schema"
+    (let [schema-glo [{:partition :db.part/db
+                       :install true
+                       :db/ident :token/value
+                       :db/valueType :db.type/string
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "token value"
+                       :auth false}]
+          schema-dat [{:db/id #db/id [:db.part/db]
+                       :db/ident :token/value
+                       :db/valueType :db.type/string
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "token value"
+                       :db.install/_attribute :db.part/db}]]
+      (is (=
+           (map #(dissoc % :db/id) schema-dat)
+           (map #(dissoc % :db/id) (to-datomic-schema schema-glo)))))))
+
+(deftest datascript-schema-test
+  (testing "Datomic Schema"
+    (let [schema-glo [{:partition :db.part/db
+                       :install true
+                       :db/ident :token/value
+                       :db/valueType :db.type/string
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "token value"
+                       :auth false}]
+          schema-dsc {:token/value {:db/cardinality :db.cardinality/one
+                                    :db/valueType :db.type/string}}]
+      (is (=
+           schema-dsc
+           (to-datascript-schema schema-glo))))))

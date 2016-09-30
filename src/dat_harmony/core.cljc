@@ -56,15 +56,21 @@
    (reduce pull-fold-function pull-state selector)))
 
 (defn pull-datoms
-  [q db selector eid]
+  [q db selector eids]
   (let [pull-state (get-pull-state selector)
         query `[:find ~@(map #(symbol (str "?t" %)) (range (:count pull-state)))
-                :in ~'$ ~'?t0
+                :in ~'$ [~'?t0 ...]
                 :where ~@(:where-items pull-state)]
-        query-res (q query db eid)]
+        query-res (q query db (flatten [eids]))]
     (->> query-res
          (map #(get-datoms % (:datom-desc pull-state)))
          (reduce concat)
          (into #{})
          vec)))
 
+(defn to-datascript-schema
+  [schema]
+  (->> schema
+       (map #(-> [(:db/ident %) {:db/cardinality (:db/cardinality %)
+                                 :db/valueType (:db/valueType %)}]))
+       (into {})))
