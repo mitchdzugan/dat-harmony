@@ -6,9 +6,9 @@
 
 (defn harmonize
   [conn1 conn2 selector eid]
-  (d/transact! conn2 (pull-datoms d/q @conn1 selector eid))
-  [(d/pull-many @conn1 selector eid)
-   (d/pull-many @conn2 selector eid)])
+  (d/transact! conn2 (pull-datoms d/pull-many @conn1 selector eid))
+  [(d/pull-many @conn1 selector (flatten [eid]))
+   (d/pull-many @conn2 selector (flatten [eid]))])
 
 (deftest pull-datoms-test
   (testing "Pull Datoms"
@@ -16,14 +16,14 @@
                         :db/valueType :db.type/ref}}
           conn1 (d/create-conn schema)
           conn2 (d/create-conn schema)
-          selector [:val {:_ref [:val]}]
+          selector [:val {:ref [:val :vil]}]
           ]
       (d/transact! conn1 [{:db/id 1
                            :val "v1"
                            :ref [2 3]}
                           {:db/id 2 :val "v2"}
-                          {:db/id 3 :val "v3"}])
-      (let [[exp act] (harmonize conn1 conn2 selector [2 3])]
+                          {:db/id 3 :vil "e3" :val ["v3" "v2"]}])
+      (let [[exp act] (harmonize conn1 conn2 selector 1)]
         (is (= exp act))))))
 
 (deftest datomic-schema-test

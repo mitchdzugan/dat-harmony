@@ -1,4 +1,4 @@
-(defproject dat-harmony "0.1.1-SNAPSHOT"
+(defproject dat-harmony "0.1.3-SNAPSHOT"
   :description "Datomic <-> Datascript syncing utilities"
   :url "https://github.com/mitchdzugan/dat-harmony"
   :license {:name "Eclipse Public License"
